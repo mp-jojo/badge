@@ -180,6 +180,11 @@ module Badge
     end
 
     def composite(image, overlay, alpha_channel, gravity, geometry = nil)
+      if geometry
+        # Convert percentage-based geometry to absolute pixel values
+        geometry = convert_geometry(image, geometry)
+      end
+
       image.composite(overlay, 'png') do |c|
         c.compose "Over"
         c.alpha 'On' unless !alpha_channel
@@ -187,5 +192,31 @@ module Badge
         c.geometry geometry if geometry
       end
     end
+
+    def convert_geometry(image, geometry)
+      # Extract X and Y offsets (supporting percentage values)
+      match = geometry.match(/([\+\-]?\d+%?)([\+\-]\d+%?)/)
+      return geometry unless match
+    
+      x_offset, y_offset = match.captures
+    
+      # Convert percentages to pixel values
+      x_offset = convert_percentage(x_offset, image.width)
+      y_offset = convert_percentage(y_offset, image.height)
+    
+      # Return the adjusted geometry string
+      "#{x_offset}#{y_offset}"
+    end
+
+    def convert_percentage(value, max_value)
+      if value.include?('%')
+        pixels = (max_value * value.to_f / 100).to_i
+        "#{value[0]}#{pixels}" # Preserve + or - sign
+      else
+        value
+      end
+    end
+
+
   end
 end
